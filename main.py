@@ -8,10 +8,12 @@ from services.deal_tracker import load as load_deals, save as save_deals, is_alr
 from core.calculator import is_good_deal
 from scrapers.goldsilver import scrape_site as scrape_goldsilver
 from scrapers.argentorshop import scrape_site as scrape_argentorshop
+from scrapers.hollandgold import scrape_site as scrape_hollandgold
 
 SCRAPERS = [
     ("goldsilver.be", scrape_goldsilver),
     ("argentorshop.be", scrape_argentorshop),
+    ("hollandgold.nl", scrape_hollandgold),
 ]
 
 

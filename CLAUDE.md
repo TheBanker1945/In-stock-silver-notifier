@@ -30,6 +30,7 @@ SilverScout monitors silver bullion dealer websites, compares prices to the live
 - **`services/deal_tracker.py`** — Deduplication tracker using `notified_deals.json`. Keyed by product URL; re-notifies if price changes.
 - **`scrapers/goldsilver.py`** — BeautifulSoup scraper for goldsilver.be. Paginates automatically. Assumes 1 oz per product. Stock filtering: "In voorraad" and "Product is beschikbaar met verschillende opties" are treated as in-stock; "Binnenkort in voorraad" is skipped.
 - **`scrapers/argentorshop.py`** — BeautifulSoup scraper for argentorshop.be. Single-page, no pagination. Parses quantity from product name via regex (supports "N x 1 troy ounce", "N troy ounce", "N kilogram" patterns; skips unrecognized). Stock filtering: only `"Op voorraad"` is treated as in-stock.
+- **`scrapers/hollandgold.py`** — JSON-LD scraper for hollandgold.nl. Single-page, no pagination. Extracts product data from embedded `<script type="application/ld+json">` `ItemList`. Prices come as standard decimals (not European format). Parses quantity from product name ("N troy ounce"). URL pre-filters to 1 oz coins (`selectie=508`) and in-stock only (`instock=1`).
 
 ### Adding a new scraper
 

@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 .venv/
 api_usage.json
+notified_deals.json
+spot_price_cache.json

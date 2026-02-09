@@ -4,6 +4,7 @@ import config
 from services.silver_price import SilverPriceService
 from services.notifier import TelegramNotifier
 from services.rate_limiter import get_remaining_requests
+from services.deal_tracker import load as load_deals, save as save_deals, is_already_notified, mark_notified
 from core.calculator import is_good_deal
 from scrapers.goldsilver import scrape_site as scrape_goldsilver
 from scrapers.argentorshop import scrape_site as scrape_argentorshop
@@ -75,6 +76,7 @@ def run():
 
     # --- Evaluate products ---
     notifier = TelegramNotifier()
+    notified_deals = load_deals()
     deals_found = 0
 
     for product in all_products:
@@ -91,6 +93,10 @@ def run():
             premium = price_per_oz - spot_price
             print(f"  -> DEAL! Premium: EUR {premium:.2f}/oz")
 
+            if is_already_notified(notified_deals, url, price_per_oz, total_price):
+                print(f"  -> Already notified, skipping.")
+                continue
+
             message = (
                 f"<b>SilverScout Deal Found!</b>\n\n"
                 f"Product: {name}\n"
@@ -100,9 +106,12 @@ def run():
                 f"Premium: EUR {premium:.2f}/oz\n"
                 f"<a href=\"{url}\">View Product</a>"
             )
-            notifier.send(message)
+            if notifier.send(message):
+                mark_notified(notified_deals, url, price_per_oz, total_price)
         else:
             print(f"  -> Skip (too expensive or over cap)")
+
+    save_deals(notified_deals)
 
     print(f"\n{'=' * 50}")
     print(f"Done. {deals_found} deal(s) found out of {len(all_products)} in-stock products.")

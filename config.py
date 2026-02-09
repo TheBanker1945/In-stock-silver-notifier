@@ -15,3 +15,6 @@ HARD_CAP = 2500.00   # Absolute max EUR price regardless of spot
 # --- Rate Limiting ---
 REQUEST_DELAY = 5  # Seconds between checks/actions
 MONTHLY_API_LIMIT = 100  # Max silver API requests per calendar month
+
+# --- Caching ---
+SPOT_PRICE_CACHE_HOURS = 8  # Reuse cached spot price within this window

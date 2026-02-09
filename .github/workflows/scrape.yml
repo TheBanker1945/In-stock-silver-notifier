@@ -1,0 +1,49 @@
+name: SilverScout Scraper
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every hour on the hour
+  workflow_dispatch:       # Manual trigger
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore state files
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            notified_deals.json
+            api_usage.json
+            spot_price_cache.json
+          key: silverscout-state-${{ github.run_id }}
+          restore-keys: silverscout-state-
+
+      - name: Run SilverScout
+        env:
+          SILVER_API_KEY: ${{ secrets.SILVER_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
+
+      - name: Save state files
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            notified_deals.json
+            api_usage.json
+            spot_price_cache.json
+          key: silverscout-state-${{ github.run_id }}

@@ -61,7 +61,9 @@ def _scrape_page(url: str) -> list[dict]:
 
         products.append({
             "name": name,
-            "price": price,
+            "price_per_oz": price,
+            "total_price": price,
+            "quantity_oz": 1.0,
             "url": product_url,
             "in_stock": True,
         })

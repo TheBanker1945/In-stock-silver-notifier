@@ -5,7 +5,13 @@ from services.silver_price import SilverPriceService
 from services.notifier import TelegramNotifier
 from services.rate_limiter import get_remaining_requests
 from core.calculator import is_good_deal
-from scrapers.goldsilver import scrape_site
+from scrapers.goldsilver import scrape_site as scrape_goldsilver
+from scrapers.argentorshop import scrape_site as scrape_argentorshop
+
+SCRAPERS = [
+    ("goldsilver.be", scrape_goldsilver),
+    ("argentorshop.be", scrape_argentorshop),
+]
 
 
 def run():
@@ -50,43 +56,48 @@ def run():
     print(f"Hard cap:                  EUR {config.HARD_CAP:.2f}")
     print(f"[Rate Limit] API requests remaining after fetch: {remaining}/{config.MONTHLY_API_LIMIT}")
 
-    # --- Scrape goldsilver.be ---
-    print("\nScraping goldsilver.be for in-stock 1 oz silver...")
-    try:
-        products = scrape_site()
-    except Exception as e:
-        print(f"[Scraper] Failed to scrape goldsilver.be: {e}")
+    # --- Scrape all dealer sites ---
+    all_products = []
+    for site_name, scrape_fn in SCRAPERS:
+        print(f"\nScraping {site_name}...")
+        try:
+            products = scrape_fn()
+            print(f"[{site_name}] {len(products)} in-stock product(s)")
+            all_products.extend(products)
+        except Exception as e:
+            print(f"[{site_name}] Scrape failed: {e}")
+
+    if not all_products:
+        print("\nNo in-stock products found across any site. Exiting.")
         return
 
-    print(f"Found {len(products)} in-stock product(s).")
-
-    if not products:
-        print("No in-stock products found. Exiting.")
-        return
+    print(f"\nTotal: {len(all_products)} in-stock product(s) across {len(SCRAPERS)} site(s).")
 
     # --- Evaluate products ---
     notifier = TelegramNotifier()
     deals_found = 0
 
-    for product in products:
+    for product in all_products:
         name = product["name"]
-        price = product["price"]
+        price_per_oz = product["price_per_oz"]
+        total_price = product["total_price"]
+        quantity_oz = product["quantity_oz"]
         url = product["url"]
 
-        print(f"\nChecking: {name} @ EUR {price:.2f}")
-        time.sleep(config.REQUEST_DELAY)
+        print(f"\nChecking: {name} @ EUR {price_per_oz:.2f}/oz ({quantity_oz:.2f} oz, total EUR {total_price:.2f})")
 
-        if is_good_deal(price, spot_price):
+        if is_good_deal(price_per_oz, spot_price, total_price):
             deals_found += 1
-            premium = price - spot_price
-            print(f"  -> DEAL! Premium: EUR {premium:.2f}")
+            premium = price_per_oz - spot_price
+            print(f"  -> DEAL! Premium: EUR {premium:.2f}/oz")
 
             message = (
                 f"<b>SilverScout Deal Found!</b>\n\n"
                 f"Product: {name}\n"
-                f"Price: EUR {price:.2f}\n"
+                f"Price/oz: EUR {price_per_oz:.2f}\n"
+                f"Total: EUR {total_price:.2f} ({quantity_oz:.2f} oz)\n"
                 f"Spot: EUR {spot_price:.2f}\n"
-                f"Premium: EUR {premium:.2f}\n"
+                f"Premium: EUR {premium:.2f}/oz\n"
                 f"<a href=\"{url}\">View Product</a>"
             )
             notifier.send(message)
@@ -94,7 +105,7 @@ def run():
             print(f"  -> Skip (too expensive or over cap)")
 
     print(f"\n{'=' * 50}")
-    print(f"Done. {deals_found} deal(s) found out of {len(products)} in-stock products.")
+    print(f"Done. {deals_found} deal(s) found out of {len(all_products)} in-stock products.")
 
 
 if __name__ == "__main__":

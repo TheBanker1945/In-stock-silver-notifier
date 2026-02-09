@@ -5,21 +5,12 @@ from services.silver_price import SilverPriceService
 from services.notifier import TelegramNotifier
 from services.rate_limiter import get_remaining_requests
 from core.calculator import is_good_deal
-
-
-# Dummy products for Phase 1 testing.
-# Each entry: (name, price_eur_per_oz)
-DUMMY_PRODUCTS = [
-    ("1 oz Silver Maple Leaf", 30.50),
-    ("1 oz Silver Philharmonic", 45.00),
-    ("1 oz Silver Bar (Generic)", 28.00),
-    ("1 oz Silver Krugerrand", 3000.00),  # Over HARD_CAP
-]
+from scrapers.goldsilver import scrape_site
 
 
 def run():
     print("=" * 50)
-    print("SilverScout - Phase 1 Test Run")
+    print("SilverScout - Live Run")
     print("=" * 50)
 
     # --- Validate config ---
@@ -59,11 +50,29 @@ def run():
     print(f"Hard cap:                  EUR {config.HARD_CAP:.2f}")
     print(f"[Rate Limit] API requests remaining after fetch: {remaining}/{config.MONTHLY_API_LIMIT}")
 
-    # --- Evaluate dummy products ---
+    # --- Scrape goldsilver.be ---
+    print("\nScraping goldsilver.be for in-stock 1 oz silver...")
+    try:
+        products = scrape_site()
+    except Exception as e:
+        print(f"[Scraper] Failed to scrape goldsilver.be: {e}")
+        return
+
+    print(f"Found {len(products)} in-stock product(s).")
+
+    if not products:
+        print("No in-stock products found. Exiting.")
+        return
+
+    # --- Evaluate products ---
     notifier = TelegramNotifier()
     deals_found = 0
 
-    for name, price in DUMMY_PRODUCTS:
+    for product in products:
+        name = product["name"]
+        price = product["price"]
+        url = product["url"]
+
         print(f"\nChecking: {name} @ EUR {price:.2f}")
         time.sleep(config.REQUEST_DELAY)
 
@@ -78,13 +87,14 @@ def run():
                 f"Price: EUR {price:.2f}\n"
                 f"Spot: EUR {spot_price:.2f}\n"
                 f"Premium: EUR {premium:.2f}\n"
+                f"<a href=\"{url}\">View Product</a>"
             )
             notifier.send(message)
         else:
             print(f"  -> Skip (too expensive or over cap)")
 
     print(f"\n{'=' * 50}")
-    print(f"Done. {deals_found} deal(s) found out of {len(DUMMY_PRODUCTS)} products.")
+    print(f"Done. {deals_found} deal(s) found out of {len(products)} in-stock products.")
 
 
 if __name__ == "__main__":

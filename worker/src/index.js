@@ -87,8 +87,8 @@ async function handleStatus(env) {
   const usage = files["api_usage.json"];
 
   let spotInfo = "No cached price";
-  if (cache && cache.price && cache.timestamp) {
-    const ageMs = Date.now() - cache.timestamp * 1000;
+  if (cache && cache.price && cache.fetched_at) {
+    const ageMs = Date.now() - cache.fetched_at * 1000;
     const ageMin = Math.round(ageMs / 60000);
     const refreshMin = Math.max(0, 180 - ageMin);
     spotInfo =

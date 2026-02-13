@@ -1,3 +1,17 @@
+const KEYBOARD = {
+  inline_keyboard: [
+    [
+      { text: "📊 Status", callback_data: "/status" },
+      { text: "💰 Price", callback_data: "/price" },
+    ],
+    [
+      { text: "🔔 Deals", callback_data: "/deals" },
+      { text: "🔑 Keys", callback_data: "/keys" },
+    ],
+    [{ text: "🚀 Force Scrape", callback_data: "/force" }],
+  ],
+};
+
 export default {
   async fetch(request, env) {
     if (request.method !== "POST") {
@@ -6,25 +20,66 @@ export default {
 
     try {
       const update = await request.json();
+      const allowedChats = env.TELEGRAM_CHAT_ID.split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      // Handle callback queries (button taps)
+      if (update.callback_query) {
+        const cb = update.callback_query;
+        const chatId = String(cb.message.chat.id);
+        if (!allowedChats.includes(chatId)) {
+          return new Response("Unauthorized", { status: 403 });
+        }
+
+        const command = cb.data;
+        const handler = HANDLERS[command];
+        if (handler) {
+          let reply;
+          try {
+            reply = await handler(env);
+          } catch (err) {
+            console.error("Handler error:", err);
+            reply = `Error: ${err.message}`;
+          }
+          await sendTelegram(env, chatId, reply);
+        }
+
+        // Acknowledge the callback to remove the loading spinner
+        await fetch(
+          `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ callback_query_id: cb.id }),
+          }
+        );
+
+        return new Response("OK");
+      }
+
+      // Handle text messages
       const message = update.message || update.channel_post;
       if (!message || !message.text) return new Response("OK");
 
       const chatId = String(message.chat.id);
-      const allowedChats = env.TELEGRAM_CHAT_ID.split(",").map((s) => s.trim()).filter(Boolean);
       if (!allowedChats.includes(chatId)) {
         return new Response("Unauthorized", { status: 403 });
       }
 
       const command = message.text.split("@")[0].trim().toLowerCase();
-      const handlers = {
-        "/status": handleStatus,
-        "/price": handlePrice,
-        "/deals": handleDeals,
-        "/keys": handleKeys,
-        "/force": handleForce,
-      };
 
-      const handler = handlers[command];
+      if (command === "/start" || command === "/menu") {
+        await sendTelegram(
+          env,
+          chatId,
+          "<b>SilverScout</b>\n\nChoose a command:",
+          KEYBOARD
+        );
+        return new Response("OK");
+      }
+
+      const handler = HANDLERS[command];
       if (!handler) return new Response("OK");
 
       let reply;
@@ -34,7 +89,7 @@ export default {
         console.error("Handler error:", err);
         reply = `Error: ${err.message}`;
       }
-      await sendTelegram(env, chatId, reply);
+      await sendTelegram(env, chatId, reply, KEYBOARD);
 
       return new Response("OK");
     } catch (err) {
@@ -42,6 +97,14 @@ export default {
       return new Response("Error", { status: 500 });
     }
   },
+};
+
+const HANDLERS = {
+  "/status": handleStatus,
+  "/price": handlePrice,
+  "/deals": handleDeals,
+  "/keys": handleKeys,
+  "/force": handleForce,
 };
 
 async function fetchGistFiles(env) {
@@ -65,18 +128,22 @@ async function fetchGistFiles(env) {
   return files;
 }
 
-async function sendTelegram(env, chatId, text) {
+async function sendTelegram(env, chatId, text, replyMarkup) {
+  const body = {
+    chat_id: chatId,
+    text: text,
+    parse_mode: "HTML",
+    disable_web_page_preview: true,
+  };
+  if (replyMarkup) {
+    body.reply_markup = replyMarkup;
+  }
   await fetch(
     `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: text,
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-      }),
+      body: JSON.stringify(body),
     }
   );
 }

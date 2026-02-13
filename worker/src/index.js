@@ -1,15 +1,11 @@
 const KEYBOARD = {
-  inline_keyboard: [
-    [
-      { text: "📊 Status", callback_data: "/status" },
-      { text: "💰 Price", callback_data: "/price" },
-    ],
-    [
-      { text: "🔔 Deals", callback_data: "/deals" },
-      { text: "🔑 Keys", callback_data: "/keys" },
-    ],
-    [{ text: "🚀 Force Scrape", callback_data: "/force" }],
+  keyboard: [
+    [{ text: "📊 Status" }, { text: "💰 Price" }],
+    [{ text: "🔔 Deals" }, { text: "🔑 Keys" }],
+    [{ text: "🚀 Force Scrape" }],
   ],
+  resize_keyboard: true,
+  is_persistent: true,
 };
 
 export default {
@@ -24,41 +20,6 @@ export default {
         .map((s) => s.trim())
         .filter(Boolean);
 
-      // Handle callback queries (button taps)
-      if (update.callback_query) {
-        const cb = update.callback_query;
-        const chatId = String(cb.message.chat.id);
-        if (!allowedChats.includes(chatId)) {
-          return new Response("Unauthorized", { status: 403 });
-        }
-
-        const command = cb.data;
-        const handler = HANDLERS[command];
-        if (handler) {
-          let reply;
-          try {
-            reply = await handler(env);
-          } catch (err) {
-            console.error("Handler error:", err);
-            reply = `Error: ${err.message}`;
-          }
-          await sendTelegram(env, chatId, reply);
-        }
-
-        // Acknowledge the callback to remove the loading spinner
-        await fetch(
-          `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ callback_query_id: cb.id }),
-          }
-        );
-
-        return new Response("OK");
-      }
-
-      // Handle text messages
       const message = update.message || update.channel_post;
       if (!message || !message.text) return new Response("OK");
 
@@ -105,6 +66,11 @@ const HANDLERS = {
   "/deals": handleDeals,
   "/keys": handleKeys,
   "/force": handleForce,
+  "📊 status": handleStatus,
+  "💰 price": handlePrice,
+  "🔔 deals": handleDeals,
+  "🔑 keys": handleKeys,
+  "🚀 force scrape": handleForce,
 };
 
 async function fetchGistFiles(env) {

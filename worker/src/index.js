@@ -6,11 +6,12 @@ export default {
 
     try {
       const update = await request.json();
-      const message = update.message;
+      const message = update.message || update.channel_post;
       if (!message || !message.text) return new Response("OK");
 
       const chatId = String(message.chat.id);
-      if (chatId !== env.TELEGRAM_CHAT_ID) {
+      const allowedChats = env.TELEGRAM_CHAT_ID.split(",").map((s) => s.trim()).filter(Boolean);
+      if (!allowedChats.includes(chatId)) {
         return new Response("Unauthorized", { status: 403 });
       }
 
@@ -26,7 +27,13 @@ export default {
       const handler = handlers[command];
       if (!handler) return new Response("OK");
 
-      const reply = await handler(env);
+      let reply;
+      try {
+        reply = await handler(env);
+      } catch (err) {
+        console.error("Handler error:", err);
+        reply = `Error: ${err.message}`;
+      }
       await sendTelegram(env, chatId, reply);
 
       return new Response("OK");

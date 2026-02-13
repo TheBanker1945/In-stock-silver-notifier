@@ -5,3 +5,4 @@ __pycache__/
 api_usage.json
 notified_deals.json
 spot_price_cache.json
+node_modules/

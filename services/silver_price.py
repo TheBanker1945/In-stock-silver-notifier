@@ -5,7 +5,7 @@ import time
 import requests
 
 import config
-from services.rate_limiter import can_make_request, record_request, get_remaining_requests
+from services.rate_limiter import can_make_request, record_request, get_remaining_requests, get_available_key
 
 
 CACHE_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "spot_price_cache.json")
@@ -38,9 +38,6 @@ class SilverPriceService:
 
     BASE_URL = "https://www.goldapi.io/api/XAG/EUR"
 
-    def __init__(self):
-        self.api_key = config.SILVER_API_KEY
-
     def get_spot_price_eur(self) -> float | None:
         """Return the current silver spot price per troy ounce in EUR.
 
@@ -53,16 +50,17 @@ class SilverPriceService:
             print(f"[SilverPrice] Using cached spot price: EUR {cached:.2f} (cache < {config.SPOT_PRICE_CACHE_HOURS}h old)")
             return cached
 
-        remaining = get_remaining_requests()
-        if not can_make_request():
-            print(f"[SilverPrice] Monthly API limit reached ({config.MONTHLY_API_LIMIT} requests).")
+        api_key = get_available_key(config.SILVER_API_KEYS)
+        if api_key is None:
+            print(f"[SilverPrice] All API keys exhausted ({config.MONTHLY_API_LIMIT} requests/key).")
             print(f"[SilverPrice] Limit resets at the start of next month.")
             return None
 
+        remaining = get_remaining_requests()
         print(f"[SilverPrice] API requests remaining this month: {remaining}")
 
         headers = {
-            "x-access-token": self.api_key,
+            "x-access-token": api_key,
         }
 
         try:
@@ -72,7 +70,7 @@ class SilverPriceService:
 
             # Count the request regardless of API-level success/failure,
             # because the HTTP request was made and counted by the provider.
-            record_request()
+            record_request(api_key)
 
             if "error" in data:
                 print(f"[SilverPrice] API error: {data['error']}")

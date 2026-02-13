@@ -2,7 +2,7 @@ name: SilverScout Scraper
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Every hour on the hour
+    - cron: '0 6-23 * * *'  # Every hour from 8AM-1AM CET (6-23 UTC covers CET/CEST)
   workflow_dispatch:       # Manual trigger
 
 jobs:
@@ -34,8 +34,11 @@ jobs:
       - name: Run SilverScout
         env:
           SILVER_API_KEY: ${{ secrets.SILVER_API_KEY }}
+          SILVER_API_KEY_2: ${{ secrets.SILVER_API_KEY_2 }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GIST_ID: ${{ secrets.GIST_ID }}
         run: python main.py
 
       - name: Save state files

@@ -33,8 +33,8 @@ jobs:
 
       - name: Run SilverScout
         env:
-          SILVER_API_KEY: ${{ secrets.SILVER_API_KEY }}
-          SILVER_API_KEY_2: ${{ secrets.SILVER_API_KEY_2 }}
+          SILVERSTACK_URL: ${{ secrets.SILVERSTACK_URL }}
+          SILVERSTACK_API_KEY: ${{ secrets.SILVERSTACK_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}

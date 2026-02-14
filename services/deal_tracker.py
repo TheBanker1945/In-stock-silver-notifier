@@ -1,3 +1,4 @@
+# LEGACY: Kept as fallback. Primary deal evaluation is now handled by SilverStack dashboard.
 import json
 import os
 

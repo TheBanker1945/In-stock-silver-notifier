@@ -61,9 +61,9 @@ The dashboard calculates spot price, premium, and deal quality — the scraper d
 
 ### Important details
 
-- **European price format** — Both scrapers parse European-format prices: dots are thousands separators, commas are decimal separators (e.g., `€ 2.725,24`). Each scraper has its own `_parse_euro()` helper.
-- **Whitespace normalization** — Dealer sites include non-breaking spaces (`\xa0`) in stock status and price text. Both scrapers use a `_normalize()` helper to collapse all whitespace before comparison.
+- **European price format** — goldsilver.be and argentorshop.be parse European-format prices: dots are thousands separators, commas are decimal separators (e.g., `€ 2.725,24`). argentorshop.py has a `_parse_euro()` helper; goldsilver.py does equivalent parsing inline. hollandgold.py gets standard decimal prices from JSON-LD.
+- **Whitespace normalization** — Dealer sites include non-breaking spaces (`\xa0`) in stock status and price text. goldsilver.py and argentorshop.py use a `_normalize()` helper to collapse all whitespace before comparison.
 - **`api_usage.json`**, **`notified_deals.json`**, **`spot_price_cache.json`** — Gitignored, created at runtime in the project root.
-- **All HTTP requests use 10-second timeouts.**
+- **HTTP timeouts** — Scrapers use 15-second timeouts; services (dashboard_sync, gist_sync) use 10-second timeouts.
 - Services return `None` on API errors; scrapers raise exceptions caught by `main.py`.
 - **Telegram Bot setup** — Deploy worker with `cd worker && npm install && npx wrangler deploy`. Set secrets via `wrangler secret put` (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GITHUB_TOKEN`, `GIST_ID`, `GITHUB_REPO`). Register webhook: `https://api.telegram.org/bot<TOKEN>/setWebhook?url=<WORKER_URL>`. Add `GH_PAT` and `GIST_ID` as GitHub Actions secrets.

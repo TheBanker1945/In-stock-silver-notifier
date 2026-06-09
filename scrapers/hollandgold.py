@@ -1,8 +1,9 @@
 import json
 import re
 
-import requests
 from bs4 import BeautifulSoup
+
+from core.http import get as http_get
 
 URL = (
     "https://www.hollandgold.nl/zilver-kopen/zilveren-munten-kopen.html"
@@ -29,8 +30,7 @@ def scrape_site() -> list[dict]:
     Returns a list of dicts with keys:
         name, price_per_oz, total_price, quantity_oz, url, in_stock.
     """
-    resp = requests.get(URL, timeout=15)
-    resp.raise_for_status()
+    resp = http_get(URL)
 
     soup = BeautifulSoup(resp.text, "html.parser")
     products = []

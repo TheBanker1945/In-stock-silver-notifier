@@ -1,7 +1,8 @@
 import re
 
-import requests
 from bs4 import BeautifulSoup
+
+from core.http import get as http_get
 
 BASE_URL = (
     "https://goldsilver.be/nl/84-1-oz-30-gr"
@@ -21,8 +22,7 @@ def _normalize(text: str) -> str:
 
 def _scrape_page(url: str) -> list[dict]:
     """Scrape a single page and return in-stock products."""
-    resp = requests.get(url, timeout=15)
-    resp.raise_for_status()
+    resp = http_get(url)
 
     soup = BeautifulSoup(resp.text, "html.parser")
     products = []
@@ -73,8 +73,7 @@ def _scrape_page(url: str) -> list[dict]:
 
 def _get_last_page(url: str) -> int:
     """Detect the highest page number from pagination links."""
-    resp = requests.get(url, timeout=15)
-    resp.raise_for_status()
+    resp = http_get(url)
 
     pages = {1}
     for match in re.finditer(r"[&?]p=(\d+)", resp.text):

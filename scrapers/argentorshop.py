@@ -1,7 +1,8 @@
 import re
 
-import requests
 from bs4 import BeautifulSoup
+
+from core.http import get as http_get
 
 URL = "https://www.argentorshop.be/nl/zilver-kopen/zilveren-munten-kopen/"
 
@@ -60,8 +61,7 @@ def scrape_site() -> list[dict]:
         name, price_per_oz, total_price, quantity_oz, url, in_stock.
     Only products marked "Op voorraad" are included.
     """
-    resp = requests.get(URL, timeout=15)
-    resp.raise_for_status()
+    resp = http_get(URL)
 
     soup = BeautifulSoup(resp.text, "html.parser")
     products = []
